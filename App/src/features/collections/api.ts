@@ -1,8 +1,7 @@
 import { AuthStorage } from "../../userData/AuthStorage";
+import { apiUrl } from "../../config/api";
 import type { Place } from "../discover/types";
 import type { Collection, SavedPlace } from "./types";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function buildAuthHeaders() {
   const token = AuthStorage.getToken();
@@ -23,7 +22,7 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 export async function fetchCollections() {
-  const response = await fetch(`${API_BASE}/collections`, {
+  const response = await fetch(apiUrl("/collections"), {
     headers: buildAuthHeaders(),
   });
 
@@ -41,7 +40,7 @@ export async function fetchCollections() {
 }
 
 export async function createCollection(name: string) {
-  const response = await fetch(`${API_BASE}/collections`, {
+  const response = await fetch(apiUrl("/collections"), {
     method: "POST",
     headers: buildAuthHeaders(),
     body: JSON.stringify({ name }),
@@ -65,7 +64,7 @@ export async function createCollection(name: string) {
 }
 
 export async function deleteCollection(collectionId: number) {
-  const response = await fetch(`${API_BASE}/collections/${collectionId}`, {
+  const response = await fetch(apiUrl(`/collections/${collectionId}`), {
     method: "DELETE",
     headers: buildAuthHeaders(),
   });
@@ -85,7 +84,7 @@ export async function deleteCollection(collectionId: number) {
 
 export async function fetchSavedPlaces(collectionId: number) {
   const response = await fetch(
-    `${API_BASE}/collections/${collectionId}/saved-places`,
+    apiUrl(`/collections/${collectionId}/saved-places`),
     {
       headers: buildAuthHeaders(),
     },
@@ -119,7 +118,7 @@ export async function savePlaceToCollection(collectionId: number, place: Place) 
       : null;
 
   const response = await fetch(
-    `${API_BASE}/collections/${collectionId}/saved-places`,
+    apiUrl(`/collections/${collectionId}/saved-places`),
     {
       method: "POST",
       headers: buildAuthHeaders(),
@@ -151,7 +150,7 @@ export async function savePlaceToCollection(collectionId: number, place: Place) 
 }
 
 export async function deleteSavedPlace(savedPlaceId: number) {
-  const response = await fetch(`${API_BASE}/saved-places/${savedPlaceId}`, {
+  const response = await fetch(apiUrl(`/saved-places/${savedPlaceId}`), {
     method: "DELETE",
     headers: buildAuthHeaders(),
   });

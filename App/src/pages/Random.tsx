@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import MainLayout from "../components/layout/MainLayout";
+import { apiUrl } from "../config/api";
 import ChipsRow from "../features/discover/components/ChipsRow";
 import InfoPanel from "../features/discover/components/InfoPanel";
 import type { Place } from "../features/discover/types";
@@ -154,7 +155,9 @@ export default function Random() {
 
       const query = categoryToQuery(activeCategory);
       const response = await fetch(
-        `/api/places/cached?q=${encodeURIComponent(query)}&location=${encodeURIComponent(locationLabel)}&limit=40`,
+        apiUrl(
+          `/api/places/cached?q=${encodeURIComponent(query)}&location=${encodeURIComponent(locationLabel)}&limit=40`,
+        ),
       );
 
       const text = await response.text();

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../components/layout/MainLayout";
+import { apiUrl } from "../config/api";
 
 import PlacesGrid from "../features/discover/components/PlacesGrid";
 import ChipsRow from "../features/discover/components/ChipsRow";
@@ -268,8 +269,12 @@ async function fetchPlacesForCategory(
   locationLabel: string,
 ) {
   const categoryQuery = categoryToQuery(category);
-  const cachedUrl = `/api/places/cached?q=${encodeURIComponent(categoryQuery)}&location=${encodeURIComponent(locationLabel)}&limit=40`;
-  const liveUrl = `/api/places?q=${encodeURIComponent(categoryQuery)}&location=${encodeURIComponent(locationLabel)}&limit=40`;
+  const cachedUrl = apiUrl(
+    `/api/places/cached?q=${encodeURIComponent(categoryQuery)}&location=${encodeURIComponent(locationLabel)}&limit=40`,
+  );
+  const liveUrl = apiUrl(
+    `/api/places?q=${encodeURIComponent(categoryQuery)}&location=${encodeURIComponent(locationLabel)}&limit=40`,
+  );
 
   const cachedResponse = await fetch(cachedUrl);
 

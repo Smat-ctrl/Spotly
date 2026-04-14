@@ -1,7 +1,6 @@
 import { AuthStorage } from "../../userData/AuthStorage";
+import { apiUrl } from "../../config/api";
 import type { Profile } from "./types";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function buildAuthHeaders() {
   const token = AuthStorage.getToken();
@@ -22,7 +21,7 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 export async function fetchProfile() {
-  const response = await fetch(`${API_BASE}/profile`, {
+  const response = await fetch(apiUrl("/profile"), {
     headers: buildAuthHeaders(),
   });
 
@@ -43,7 +42,7 @@ export async function updateProfile(input: {
   fullName: string;
   avatarUrl: string;
 }) {
-  const response = await fetch(`${API_BASE}/profile`, {
+  const response = await fetch(apiUrl("/profile"), {
     method: "PATCH",
     headers: buildAuthHeaders(),
     body: JSON.stringify(input),
