@@ -63,6 +63,7 @@ function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
 }
 
 const spotlyServer = express();
+let schemaInitialization: Promise<void> | null = null;
 
 spotlyServer.use(express.json());
 spotlyServer.use("/api", placesRouter);
@@ -156,6 +157,22 @@ async function ensureCollectionsSchemaSafely() {
   }
 }
 
+async function initializeServer() {
+  await ensureUserNameColumn();
+  await ensureCollectionsSchemaSafely();
+}
+
+function initializeServerOnce() {
+  if (!schemaInitialization) {
+    schemaInitialization = initializeServer().catch((error) => {
+      schemaInitialization = null;
+      throw error;
+    });
+  }
+
+  return schemaInitialization;
+}
+
 function toOptionalNumber(value: unknown) {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -175,6 +192,7 @@ function toOptionalNumber(value: unknown) {
 
 spotlyServer.get("/health", async (_req, res) => {
   try {
+    await initializeServerOnce();
     const result = await pool.query("SELECT NOW() as now");
     res.json({ ok: true, dbTime: result.rows[0].now });
   } catch (error) {
@@ -186,6 +204,7 @@ spotlyServer.get("/health", async (_req, res) => {
 // COLLECTION REQUESTS
 spotlyServer.get("/collections", requireAuth, async (req: AuthRequest, res) => {
   try {
+    await initializeServerOnce();
     const userId = req.userId!;
     const result = await pool.query(
       "SELECT * FROM collections WHERE user_id = $1",
@@ -200,6 +219,7 @@ spotlyServer.get("/collections", requireAuth, async (req: AuthRequest, res) => {
 
 spotlyServer.post("/collections", requireAuth, async (req: AuthRequest, res) => {
   try {
+    await initializeServerOnce();
     const userId = req.userId!;
     const { name } = req.body as { name?: string };
 
@@ -221,6 +241,7 @@ spotlyServer.post("/collections", requireAuth, async (req: AuthRequest, res) => 
 
 spotlyServer.delete("/collections/:collectionId", requireAuth, async (req: AuthRequest, res) => {
   try {
+    await initializeServerOnce();
     const userId = req.userId!;
     const collectionId = Number(req.params.collectionId);
 
@@ -250,6 +271,7 @@ spotlyServer.delete("/collections/:collectionId", requireAuth, async (req: AuthR
 // SAVED + COLLECTION REQUESTS
 spotlyServer.get("/collections/:collectionId/saved-places", requireAuth, async (req: AuthRequest, res) => {
   try {
+    await initializeServerOnce();
     const userId = req.userId!;
     const collectionId = Number(req.params.collectionId);
 
@@ -274,6 +296,7 @@ spotlyServer.get("/collections/:collectionId/saved-places", requireAuth, async (
 
 spotlyServer.post("/collections/:collectionId/saved-places", requireAuth, async (req: AuthRequest, res) => {
   try {
+    await initializeServerOnce();
     const userId = req.userId!;
     const collectionId = Number(req.params.collectionId);
 
@@ -353,6 +376,7 @@ spotlyServer.post("/collections/:collectionId/saved-places", requireAuth, async 
 
 spotlyServer.delete("/saved-places/:savedPlacesId", requireAuth, async (req: AuthRequest, res) => {
   try {
+    await initializeServerOnce();
     const userId = req.userId!;
     const savedPlacesId = Number(req.params.savedPlacesId);
 
@@ -386,6 +410,7 @@ spotlyServer.delete("/saved-places/:savedPlacesId", requireAuth, async (req: Aut
 // PROFILE REQUESTS
 spotlyServer.get("/profile", requireAuth, async (req: AuthRequest, res) => {
   try {
+    await initializeServerOnce();
     const userId = req.userId!;
 
     const result = await pool.query(
@@ -417,6 +442,7 @@ spotlyServer.get("/profile", requireAuth, async (req: AuthRequest, res) => {
 
 spotlyServer.patch("/profile", requireAuth, async (req: AuthRequest, res) => {
   try {
+    await initializeServerOnce();
     const userId = req.userId!;
     const { fullName, avatarUrl } = req.body as {
       fullName?: string;
@@ -456,6 +482,7 @@ spotlyServer.patch("/profile", requireAuth, async (req: AuthRequest, res) => {
 // LOGIN + AUTH REQUESTS
 spotlyServer.post("/auth/register", async (req, res) => {
   try {
+    await initializeServerOnce();
     // FIX: added fullName so frontend field isn't ignored
     const { email, password, fullName } = req.body as {
       email?: string;
@@ -533,6 +560,7 @@ spotlyServer.post("/auth/register", async (req, res) => {
 
 spotlyServer.post("/auth/login", async (req, res) => {
   try {
+    await initializeServerOnce();
     const { email, password } = req.body as { email?: string; password?: string };
     
     if (!email || !password) {
@@ -590,15 +618,17 @@ spotlyServer.post("/auth/login", async (req, res) => {
 
 const PORT = Number(process.env.PORT) || 5000;
 
-ensureUserNameColumn()
-  .then(() => {
-    spotlyServer.listen(PORT, () => {
-      console.log(`Server listening on port ${PORT}`);
-    });
+export default spotlyServer;
 
-    void ensureCollectionsSchemaSafely();
-  })
-  .catch((error) => {
-    console.error("Failed to initialize database schema:", error);
-    process.exit(1);
-  });
+if (!process.env.VERCEL) {
+  initializeServerOnce()
+    .then(() => {
+      spotlyServer.listen(PORT, () => {
+        console.log(`Server listening on port ${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error("Failed to initialize database schema:", error);
+      process.exit(1);
+    });
+}
