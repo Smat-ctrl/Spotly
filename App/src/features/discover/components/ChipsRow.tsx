@@ -7,9 +7,10 @@ interface ChipsRowProps {
 
 export default function ChipsRow({ options, active, onChange }: ChipsRowProps) {
   return (
-    <div className="p-6 flex gap-3">
+    <div className="flex flex-wrap gap-2">
       {options.map((opt) => (
         <FilterChip
+          key={opt}
           text={opt}
           active={opt === active}
           onClick={() => onChange(opt)}

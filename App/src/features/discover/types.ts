@@ -4,4 +4,9 @@ export interface Place {
   category: string;
   rating: number;
   imageUrl?: string;
+  description?: string;
+  providerPlaceId?: string;
+  latitude?: number;
+  longitude?: number;
+  savedPlaceId?: number;
 }
