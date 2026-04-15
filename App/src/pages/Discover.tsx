@@ -30,9 +30,11 @@ type BackendPlace = {
   address?: string;
   address_lines?: string[];
   rating?: number | string;
+  description?: string;
   type?: string;
   types?: string[];
   thumbnail?: string;
+  thumbnail_large?: string;
   image?: string;
   photo?: string;
   photos?: Array<{
@@ -138,6 +140,7 @@ function pickBestImage(item: BackendPlace) {
   const candidates = [
     item.photo,
     item.image,
+    item.thumbnail_large,
     ...(item.photos || []).flatMap((photo) => [photo.image, photo.thumbnail]),
     item.thumbnail,
   ]
@@ -171,6 +174,7 @@ function mapBackendPlace(
     location: item.address || item.address_lines?.join(", ") || locationLabel,
     category,
     rating: Number(item.rating) || 0,
+    description: item.description,
     imageUrl: pickBestImage(item),
   };
 }
@@ -568,9 +572,17 @@ export default function Discover() {
             : ([activeCategory] as PlaceCategory[]);
 
         const results = await Promise.all(
-          categoriesToLoad.map((category) =>
-            fetchPlacesForCategory(category, locationLabel),
-          ),
+          categoriesToLoad.map(async (category) => {
+            try {
+              return await fetchPlacesForCategory(category, locationLabel);
+            } catch (error) {
+              console.error(`Could not load ${category} places`, error);
+              return {
+                category,
+                items: [] as BackendPlace[],
+              };
+            }
+          }),
         );
 
         if (!cancelled) {
@@ -608,6 +620,10 @@ export default function Discover() {
                   );
 
           setPlaces(dedupePlaces(mappedPlaces));
+
+          if (mappedPlaces.length === 0) {
+            setError("Could not load places right now.");
+          }
         }
       } catch (err) {
         console.error(err);

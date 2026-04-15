@@ -22,7 +22,9 @@ type CachedPlace = {
   address?: string;
   address_lines?: string[];
   rating?: number | string;
+  description?: string;
   thumbnail?: string;
+  thumbnail_large?: string;
   image?: string;
   photo?: string;
   photos?: Array<{
@@ -60,6 +62,7 @@ function pickBestImage(item: CachedPlace) {
   return (
     item.photo ||
     item.image ||
+    item.thumbnail_large ||
     item.photos?.[0]?.image ||
     item.photos?.[0]?.thumbnail ||
     item.thumbnail ||
@@ -85,6 +88,7 @@ function toPlace(
     location: item.address || item.address_lines?.join(", ") || locationLabel,
     category,
     rating: Number(item.rating) || 0,
+    description: item.description,
     imageUrl: pickBestImage(item) || undefined,
   };
 }
@@ -154,11 +158,21 @@ export default function Random() {
       setError("");
 
       const query = categoryToQuery(activeCategory);
-      const response = await fetch(
+      const cachedResponse = await fetch(
         apiUrl(
           `/api/places/cached?q=${encodeURIComponent(query)}&location=${encodeURIComponent(locationLabel)}&limit=40`,
         ),
       );
+
+      let response = cachedResponse;
+
+      if (cachedResponse.status === 404) {
+        response = await fetch(
+          apiUrl(
+            `/api/places?q=${encodeURIComponent(query)}&location=${encodeURIComponent(locationLabel)}&limit=40`,
+          ),
+        );
+      }
 
       const text = await response.text();
       const data = text ? JSON.parse(text) : null;
@@ -167,7 +181,7 @@ export default function Random() {
         setDisplay(null);
         setError(
           data?.error ||
-            "No cached places found. Search this category in Discover first.",
+            "Could not load places right now.",
         );
         return;
       }
