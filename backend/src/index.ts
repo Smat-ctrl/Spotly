@@ -65,14 +65,17 @@ function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
 const spotlyServer = express();
 let schemaInitialization: Promise<void> | null = null;
 
-spotlyServer.use(express.json());
-spotlyServer.use("/api", placesRouter);
-
 spotlyServer.use(
   cors({
     origin: process.env.CLIENT_ORIGIN,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+spotlyServer.use(express.json());
+spotlyServer.use("/api", placesRouter);
+
 
 async function ensureUserNameColumn() {
   await pool.query(
