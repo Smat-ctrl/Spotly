@@ -65,9 +65,31 @@ function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
 const spotlyServer = express();
 let schemaInitialization: Promise<void> | null = null;
 
+function getAllowedOrigins() {
+  return (process.env.CLIENT_ORIGIN || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 spotlyServer.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN,
+    origin(origin, callback) {
+      const allowedOrigins = getAllowedOrigins();
+
+      // Allow non-browser/server-to-server requests without an Origin header.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS`));
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
