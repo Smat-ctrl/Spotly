@@ -42,6 +42,9 @@ Spotly is a location-aware web app that helps you explore nearby places — coff
 ## Screenshots
 
 <!-- Add 1–2 screenshots or a GIF of the Discover page and Collections page here -->
+<img width="1904" height="1064" alt="image" src="https://github.com/user-attachments/assets/f2b6bc0d-3025-4216-8f7c-b08b43b57b14" />
+<img width="1915" height="1061" alt="image" src="https://github.com/user-attachments/assets/063b037a-915b-44f4-9767-28f40ccfcba3" />
+<img width="1916" height="1061" alt="image" src="https://github.com/user-attachments/assets/5a7e645c-8f16-4e72-8afb-e3796c56502b" />
 
 ---
 
