@@ -2,7 +2,7 @@
 
 > Discover, save, and remember the places that make your city feel like home.
 
-[Live Demo](https://spotly-murex.vercel.app) · [Figma Mockup](https://www.figma.com/design/2JfsRQw9MV8k8WSE5Mh3sw/Spotly-Mock-up?node-id=1-2)
+[Live Demo](https://spotly-z4x6.vercel.app) · [Figma Mockup](https://www.figma.com/design/2JfsRQw9MV8k8WSE5Mh3sw/Spotly-Mock-up?node-id=1-2)
 
 ---
 
