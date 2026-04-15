@@ -81,6 +81,7 @@ cd App && npm run dev
 ---
 
 ## Project Structure
+```text
 Spotly/
 ├── App/          # React + TypeScript frontend
 │   ├── features/ # Discover, Collections, Profile feature modules
