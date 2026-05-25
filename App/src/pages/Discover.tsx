@@ -187,25 +187,27 @@ function buildPlaceHaystack(item: BackendPlace) {
   ]
     .filter(Boolean)
     .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
 
 function scorePlaceCategory(haystack: string, category: PlaceCategory) {
   switch (category) {
     case "Coffee":
-      return /(coffee shop|coffeehouse|cafe|espresso bar|roastery|third wave coffee)/.test(
+      return /(coffee shop|coffeehouse|coffee roaster|espresso bar|roastery|third wave coffee|specialty coffee)/.test(
         haystack,
       )
         ? 4
-        : /\b(coffee|espresso|cafe)\b/.test(haystack)
+        : /\b(coffee|espresso|cafe|cafes|caffe|latte|roaster)\b/.test(haystack)
           ? 2
           : 0;
     case "Cocktails":
-      return /(cocktail bar|speakeasy|wine bar|lounge|pub|brewery|nightclub|taproom)/.test(
+      return /(cocktail bar|speakeasy|wine bar|lounge|pub|brewery|nightclub|taproom|distillery)/.test(
         haystack,
       )
         ? 4
-        : /\b(cocktail|bar|pub|lounge)\b/.test(haystack)
+        : /\b(cocktail|bar|pub|lounge|brewery|taproom|distillery)\b/.test(haystack)
           ? 2
           : 0;
     case "Parks":
@@ -235,37 +237,31 @@ function scorePlaceCategory(haystack: string, category: PlaceCategory) {
   }
 }
 
-function inferPlaceCategory(item: BackendPlace): PlaceCategory | null {
-  const haystack = buildPlaceHaystack(item);
-  const ranking = PLACE_CATEGORIES.map((category) => ({
+function inferPlaceCategoryFromHaystack(haystack: string): PlaceCategory | null {
+  const categoryScores = PLACE_CATEGORIES.map((category) => ({
     category,
     score: scorePlaceCategory(haystack, category),
-  })).sort((a, b) => b.score - a.score);
+  }));
+  const nonRestaurantWinner = categoryScores
+    .filter((entry) => entry.category !== "Restaurants")
+    .sort((a, b) => b.score - a.score)[0];
 
-  if (!ranking[0] || ranking[0].score <= 0) {
-    return null;
+  if (nonRestaurantWinner && nonRestaurantWinner.score > 0) {
+    return nonRestaurantWinner.category;
   }
 
-  return ranking[0].category;
+  const restaurantScore = scorePlaceCategory(haystack, "Restaurants");
+  return restaurantScore > 0 ? "Restaurants" : null;
+}
+
+function inferPlaceCategory(item: BackendPlace): PlaceCategory | null {
+  const haystack = buildPlaceHaystack(item);
+  return inferPlaceCategoryFromHaystack(haystack);
 }
 
 function belongsToCategory(item: BackendPlace, category: PlaceCategory) {
   const haystack = buildPlaceHaystack(item);
-  const ownScore = scorePlaceCategory(haystack, category);
-
-  if (ownScore <= 0) {
-    return false;
-  }
-
-  const strongestOtherScore = PLACE_CATEGORIES.filter(
-    (value) => value !== category,
-  ).reduce((best, value) => Math.max(best, scorePlaceCategory(haystack, value)), 0);
-
-  if (ownScore >= 4) {
-    return ownScore >= strongestOtherScore;
-  }
-
-  return ownScore > strongestOtherScore;
+  return inferPlaceCategoryFromHaystack(haystack) === category;
 }
 
 async function fetchPlacesForCategory(
@@ -566,13 +562,8 @@ export default function Discover() {
         setLoading(true);
         setError("");
 
-        const categoriesToLoad =
-          activeCategory === "All Spots"
-            ? PLACE_CATEGORIES
-            : ([activeCategory] as PlaceCategory[]);
-
         const results = await Promise.all(
-          categoriesToLoad.map(async (category) => {
+          PLACE_CATEGORIES.map(async (category) => {
             try {
               return await fetchPlacesForCategory(category, locationLabel);
             } catch (error) {
@@ -586,7 +577,13 @@ export default function Discover() {
         );
 
         if (!cancelled) {
-          const uniquePlaces = dedupeBackendPlaces(results.flatMap((result) => result.items));
+          const matchingResults =
+            activeCategory === "All Spots"
+              ? results
+              : results.filter((result) => result.category === activeCategory);
+          const uniquePlaces = dedupeBackendPlaces(
+            matchingResults.flatMap((result) => result.items),
+          );
           const mappedPlaces =
             activeCategory === "All Spots"
               ? uniquePlaces
