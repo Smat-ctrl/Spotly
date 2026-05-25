@@ -4,7 +4,7 @@ import type { Place } from "../discover/types";
 import type { Collection, SavedPlace } from "./types";
 
 function buildAuthHeaders() {
-  const token = AuthStorage.getToken();
+  const token = AuthStorage.getValidToken();
 
   if (!token) {
     throw new Error("You need to sign in to manage collections.");
@@ -21,6 +21,19 @@ async function readJson<T>(response: Response): Promise<T> {
   return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
+function throwApiError(
+  response: Response,
+  error?: string,
+  fallback = "Request failed.",
+): never {
+  if (response.status === 401) {
+    AuthStorage.clear();
+    throw new Error("Your session expired. Please sign in again.");
+  }
+
+  throw new Error(error || fallback);
+}
+
 export async function fetchCollections() {
   const response = await fetch(apiUrl("/collections"), {
     headers: buildAuthHeaders(),
@@ -33,7 +46,7 @@ export async function fetchCollections() {
   }>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Could not load collections.");
+    throwApiError(response, data.error, "Could not load collections.");
   }
 
   return data.collections || [];
@@ -53,7 +66,7 @@ export async function createCollection(name: string) {
   }>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Could not create collection.");
+    throwApiError(response, data.error, "Could not create collection.");
   }
 
   if (!data.collection) {
@@ -76,7 +89,7 @@ export async function deleteCollection(collectionId: number) {
   }>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Could not delete collection.");
+    throwApiError(response, data.error, "Could not delete collection.");
   }
 
   return data.deleted;
@@ -97,7 +110,7 @@ export async function fetchSavedPlaces(collectionId: number) {
   }>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Could not load saved places.");
+    throwApiError(response, data.error, "Could not load saved places.");
   }
 
   return data.savedPlaces || [];
@@ -143,7 +156,7 @@ export async function savePlaceToCollection(collectionId: number, place: Place) 
   }>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Could not save this spot.");
+    throwApiError(response, data.error, "Could not save this spot.");
   }
 
   return data.savedPlace;
@@ -162,7 +175,7 @@ export async function deleteSavedPlace(savedPlaceId: number) {
   }>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Could not remove this saved spot.");
+    throwApiError(response, data.error, "Could not remove this saved spot.");
   }
 
   return data.deleted;

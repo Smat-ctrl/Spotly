@@ -16,13 +16,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
-  if (AuthStorage.isLoggedIn()) {
-    return <Navigate to="/profile" replace />;
-  }
-  return <>{children}</>;
-}
-
 function DiscoverRoute() {
   const savedLocation = localStorage.getItem("spotly_location");
 
@@ -44,19 +37,11 @@ export default function App() {
       <Route path="/collection-page/:collectionId" element={<CollectionPage />} />
       <Route
         path="/login"
-        element={
-          <PublicOnlyRoute>
-            <Login />
-          </PublicOnlyRoute>
-        }
+        element={<Login />}
       />
       <Route
         path="/signup"
-        element={
-          <PublicOnlyRoute>
-            <SignUp />
-          </PublicOnlyRoute>
-        }
+        element={<SignUp />}
       />
       <Route
         path="/profile"

@@ -101,10 +101,40 @@ spotlyServer.use("/api", placesRouter);
 
 async function ensureUserNameColumn() {
   await pool.query(
+    `CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      full_name TEXT,
+      avatar_url TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`
+  );
+
+  await pool.query(
     `ALTER TABLE users
      ADD COLUMN IF NOT EXISTS full_name TEXT,
-     ADD COLUMN IF NOT EXISTS avatar_url TEXT`
+     ADD COLUMN IF NOT EXISTS avatar_url TEXT,
+     ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
   );
+
+  await pool.query(
+    `CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx
+     ON users (email)`
+  );
+}
+
+async function columnExists(tableName: string, columnName: string) {
+  const result = await pool.query(
+    `SELECT 1
+     FROM information_schema.columns
+     WHERE table_schema = current_schema()
+       AND table_name = $1
+       AND column_name = $2`,
+    [tableName, columnName]
+  );
+
+  return (result.rowCount ?? 0) > 0;
 }
 
 async function ensureCollectionsSchema() {
@@ -136,6 +166,8 @@ async function ensureCollectionsSchema() {
 
   await pool.query(
     `ALTER TABLE saved_places
+     ADD COLUMN IF NOT EXISTS collection_id INTEGER,
+     ADD COLUMN IF NOT EXISTS name TEXT,
      ADD COLUMN IF NOT EXISTS category TEXT,
      ADD COLUMN IF NOT EXISTS address TEXT,
      ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION,
@@ -145,6 +177,22 @@ async function ensureCollectionsSchema() {
      ADD COLUMN IF NOT EXISTS rating DOUBLE PRECISION,
      ADD COLUMN IF NOT EXISTS notes TEXT,
      ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+  );
+
+  if (await columnExists("saved_places", "place_name")) {
+    await pool.query(
+      `UPDATE saved_places
+       SET name = place_name
+       WHERE (name IS NULL OR BTRIM(name) = '')
+         AND place_name IS NOT NULL
+         AND BTRIM(place_name) <> ''`
+    );
+  }
+
+  await pool.query(
+    `UPDATE saved_places
+     SET name = 'Saved place'
+     WHERE name IS NULL OR BTRIM(name) = ''`
   );
 
   await pool.query(
@@ -165,7 +213,24 @@ async function ensureCollectionsSchema() {
      ALTER COLUMN provider_place_id DROP NOT NULL,
      ALTER COLUMN image_url DROP NOT NULL,
      ALTER COLUMN rating DROP NOT NULL,
-     ALTER COLUMN notes DROP NOT NULL`
+     ALTER COLUMN notes DROP NOT NULL,
+     ALTER COLUMN name SET NOT NULL`
+  );
+
+  await pool.query(
+    `DO $$
+     BEGIN
+       IF NOT EXISTS (
+         SELECT 1
+         FROM pg_constraint
+         WHERE conname = 'saved_places_collection_id_fkey'
+       ) THEN
+         ALTER TABLE saved_places
+         ADD CONSTRAINT saved_places_collection_id_fkey
+         FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE;
+       END IF;
+     END
+     $$`
   );
 
   await pool.query(

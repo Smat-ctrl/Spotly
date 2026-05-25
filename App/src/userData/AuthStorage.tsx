@@ -39,6 +39,21 @@ export const AuthStorage = {
     return localStorage.getItem("spotly_token");
   },
 
+  getValidToken(): string | null {
+    const token = AuthStorage.getToken();
+
+    if (!token) {
+      return null;
+    }
+
+    if (isJwtExpired(token)) {
+      AuthStorage.clear();
+      return null;
+    }
+
+    return token;
+  },
+
   getName(): string | null {
     const name = localStorage.getItem("spotly_name");
     if (!name || name === "undefined" || name === "null") return null;
@@ -81,6 +96,31 @@ export const AuthStorage = {
   },
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem("spotly_token");
+    return !!AuthStorage.getValidToken();
   },
 };
+
+function isJwtExpired(token: string) {
+  const [, payload] = token.split(".");
+
+  if (!payload) {
+    return true;
+  }
+
+  try {
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      "=",
+    );
+    const decoded = JSON.parse(atob(paddedPayload)) as { exp?: number };
+
+    if (typeof decoded.exp !== "number") {
+      return false;
+    }
+
+    return decoded.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
