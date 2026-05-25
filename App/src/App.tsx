@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import Discover from "./pages/Discover";
 import Saved from "./pages/Saved";
 import CollectionPage from "./pages/CollectionPage";
@@ -28,30 +29,33 @@ function DiscoverRoute() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/location" replace />} />
-      <Route path="/location" element={<LocationGate />} />
-      <Route path="/discover" element={<DiscoverRoute />} />
-      <Route path="/random" element={<Random/>}/>
-      <Route path="/saved" element={<Saved />} />
-      <Route path="/collection-page/:collectionId" element={<CollectionPage />} />
-      <Route
-        path="/login"
-        element={<Login />}
-      />
-      <Route
-        path="/signup"
-        element={<SignUp />}
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/signin" element={<Navigate to="/signup" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Navigate to="/location" replace />} />
+        <Route path="/location" element={<LocationGate />} />
+        <Route path="/discover" element={<DiscoverRoute />} />
+        <Route path="/random" element={<Random/>}/>
+        <Route path="/saved" element={<Saved />} />
+        <Route path="/collection-page/:collectionId" element={<CollectionPage />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+        <Route
+          path="/signup"
+          element={<SignUp />}
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/signin" element={<Navigate to="/signup" replace />} />
+      </Routes>
+      <Analytics />
+    </>
   );
 }
